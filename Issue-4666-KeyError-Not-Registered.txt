@@ -1,0 +1,37 @@
+1.
+lsof -i -a -p $(ps -eaf | grep pyt | grep pipe | awk '{print $2}')
+
+2.
+COMMAND   PID USER   FD   TYPE  DEVICE SIZE/OFF NODE NAME
+python3 21170 root    8u  IPv4 2142009      0t0  TCP localhost:44630->localhost:6380 (ESTABLISHED)
+python3 21170 root    9u  IPv4 2143719      0t0  TCP *:3333 (LISTEN)
+python3 21170 root   10u  IPv6 2143722      0t0  TCP localhost:50063 (LISTEN)
+python3 21170 root   11u  IPv4 2143723      0t0  TCP localhost:6633 (LISTEN)
+python3 21170 root   12u  IPv4 2143725      0t0  TCP localhost:6653 (LISTEN)
+python3 21170 root   13u  IPv6 2143133      0t0  TCP localhost:50063->localhost:38822 (ESTABLISHED)
+python3 21170 root   14u  IPv4 2144923      0t0  TCP localhost:6633->localhost:47370 (ESTABLISHED)
+python3 21170 root   15u  IPv6 2144937      0t0  TCP localhost:45734->localhost:50065 (ESTABLISHED)
+python3 21170 root   16u  IPv6 2146538      0t0  TCP localhost:50063->localhost:38842 (ESTABLISHED)
+python3 21170 root   17u  IPv4 2145723      0t0  TCP localhost:44660->localhost:6380 (ESTABLISHED)
+
+3.
+https://github.com/magma/magma/issues/4666
+
+4.
+Jan 30 01:37:25 magma-dev pipelined[22008]: KeyError: '24 is not registered'
+
+5.
+Explaination :
+  There are not more then 17-18 connections and most of them are either to OVS or Sessiond.
+  
+6.
+If the key-24 is not registered that means something is flapping.
+
+7.
+  need to check :
+     1. CPU and Memory load at regular intervals
+     2. Check the output given in Point 1. lsof -i -a -p $(ps -eaf | grep pyt | grep pipe | awk '{print $2}')
+     3. One possible solution is to increase the timer for OVS and Pipelined connection
+     
+ 8.
+ Good Reference : https://unix.stackexchange.com/questions/235979/how-do-i-find-out-more-about-socket-files-in-proc-fd
