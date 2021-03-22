@@ -1,0 +1,4 @@
+Tracing Packet flows
+==============================================
+ovs-dpctl -s show
+ovs-dpctl dump-flows ovs-system
