@@ -1,0 +1,192 @@
+GTP-Extension Issue :
+====================================================
+        Port gtp0
+            Interface gtp0
+                type: gtpu
+                options: {key=flow, remote_ip=flow}
+                error: "could not add network device gtp0 to ofproto (Address family not supported by protocol)"
+
+Reason for the issue :
+====================================================
+
+The openvswitch module that gets loaded from .cache does not have the gtp module
+
+vagrant@magma-dev-focal:~$ sudo lsmod | grep open
+openvswitch           135168  7
+nsh                    16384  1 openvswitch
+nf_conncount           24576  1 openvswitch
+nf_nat                 40960  1 openvswitch
+nf_conntrack          139264  4 nf_nat,nfnetlink_cttimeout,openvswitch,nf_conncount
+nf_defrag_ipv6         24576  2 nf_conntrack,openvswitch
+libcrc32c              16384  6 nf_conntrack,nf_nat,openvswitch,btrfs,xfs,raid456
+vagrant@magma-dev-focal:~$
+
+vagrant@magma-dev-focal:~/magma/.cache/apt/focal$ nm /lib/modules/5.4.0-59-generic/kernel/net/openvswitch/openvswitch.ko | grep gtp
+vagrant@magma-dev-focal:~/magma/.cache/apt/focal$
+
+
+Steps for compilation 
+====================================================
+
+git clone https://github.com/openvswitch/ovs
+cd ovs/
+git checkout f8ea6e0cab75f8f6675272fff6d99191150bb1cb /* Checkout ovs2.14.1 */
+git am ../00*
+DEB_BUILD_OPTIONS='parallel=8 nocheck' fakeroot debian/rules binary
+
+
+Steps for installation
+====================================================
+sudo mv /usr/local/lib/liblfds710.so.1 /usr/local/lib/liblfds710.so.1.BKP
+sudo ln -s liblfds710.so.1.0.0 liblfds710.so.1
+
+
+sudo dpkg -i ../libopenvswitch_2.14.1-1_amd64.deb
+cd ..
+sudo dpkg -i ../libopenvswitch_2.14.1-1_amd64.deb
+sudo dpkg -i ../libopenvswitch-dev_2.14.1-1_amd64.deb
+sudo dpkg -i ../openvswitch-common_2.14.1-1_amd64.deb
+cd ovs/
+sudo dpkg -i ../openvswitch-datapath-dkms_2.14.1-1_all.deb
+sudo dpkg -i ../openvswitch-switch_2.14.1-1_amd64.deb
+sudo dpkg -i ../openvswitch-dbg_2.14.1-1_amd64.deb
+sudo dpkg -i ../openvswitch-test_2.14.1-1_all.deb
+sudo dpkg -i ../openvswitch-pki_2.14.1-1_all.deb
+sudo dpkg -i ../openvswitch-testcontroller_2.14.1-1_amd64.deb
+sudo dpkg -i ../python3-openvswitch_2.14.1-1_all.deb
+sudo dpkg -i ../openvswitch-vtep_2.14.1-1_amd64.deb
+sudo dpkg -i ../openvswitch-datapath-dkms_2.14.1-1_all.deb
+sudo apt-get install -y libelf-dev
+sudo apt --fix-broken install
+sudo chown _apt /var/cache/apt/archives/partial/
+sudo apt --fix-broken install
+sudo apt-get install -y libelf-dev
+ls
+sudo apt-get install dkms
+ls ..
+sudo dpkg -i ../openvswitch-datapath-dkms_2.14.1-1_all.deb
+sudo dpkg -i ../openvswitch-datapath-source_2.14.1-1_all.deb
+sudo apt-get install -y module-assistant
+sudo chown _apt /var/cache/apt/archives/partial/
+sudo dpkg -i ../openvswitch-datapath-source_2.14.1-1_all.deb
+
+How to create the gtp-patch
+============================================================
+a. Commit all patches in ovs
+  a.1 git clone https://github.com/openvswitch/ovs
+  a.2 cd ovs/
+  a.3 git checkout f8ea6e0cab75f8f6675272fff6d99191150bb1cb
+  a.4 git am ../00*
+  a.5 git apply <Patch>
+  a.6 git add .
+  a.7 git commit  --signoff <<< Top Commit is 0769
+  a.8 git format-patch -1 0769
+  
+git format-patch -1 <commit>
+
+Other Build.sh
+=============================================================
+vagrant@magma-dev-focal:~/magma/third_party/gtp_ovs/ovs-gtp-patches$ cat Build.sh
+#!/bin/bash
+
+sudo /etc/init.d/openvswitch-switch stop
+sudo rm -rf /usr/local/var/run/openvswitch
+sudo rm -rf /usr/local/etc/openvswitch
+sudo rm -rf /var/run/openvswitch
+sudo rm -rf /etc/openvswitch
+sudo rm -rf /var/log/openvswitch
+sudo rmmod openvswitch
+sudo rmmod gre
+sudo rmmod vxlan
+sudo rmmod libcrc32c
+sudo rmmod openvswitch
+sudo dpkg --force-all --purge openvswitch-switch
+sudo dpkg --force-all --purge openvswitch-common
+sudo dpkg --force-all --purge openvswitch-datapath-dkms
+sudo rm /tmp/ovsdb.txt
+sudo rm /tmp/vswitch.txt
+
+sudo dpkg --force-all --purge openvswitch-switch
+sudo dpkg --force-all --purge openvswitch-common
+sudo dpkg --force-all --purge openvswitch-datapath-dkms
+sudo dpkg --force-all --purge openvswitch-ipsec
+sudo dpkg --force-all --purge openvswitch-pki
+sudo dpkg --force-all --purge openvswitch-testcontroller
+sudo dpkg --force-all --purge openvswitch-vtep
+sudo dpkg --force-all --purge python3-openvswitch
+sudo dpkg --force-all --purge libopenvswitch:amd64
+sudo dpkg --force-all --purge libopenvswitch-dev:amd64
+sudo dpkg --force-all --purge openvswitch-datapath-module-5.4.0-59-generic
+sudo dpkg --force-all --purge openvswitch-datapath-source
+sudo dpkg --force-all --purge openvswitch-dbg
+sudo dpkg --force-all --purge openvswitch-test
+dpkg -l | grep openv
+
+OUTPUT_DIR=/tmp/builds-ovs
+if [ -d ${OUTPUT_DIR} ]; then
+  sudo rm -rf ${OUTPUT_DIR}
+fi
+mkdir -p ${OUTPUT_DIR}
+
+WORK_DIR=/home/vagrant/magma/third_party/gtp_ovs/ovs-gtp-patches/2.14/
+OVS_DIR=${WORK_DIR}/ovs
+
+BUILD_DEPS="graphviz autoconf automake bzip2 debhelper dh-autoreconf libssl-dev libtool openssl procps python3-all python3-sphinx python3-twisted python3-zope.interface libunbound-dev libunwind-dev dh-python"
+
+INSTALLATION_DEPS="dctrl-tools dkms libcharon-extauth-plugins libelf-dev libstrongswan libstrongswan-standard-plugins strongswan strongswan-charon strongswan-libcharon strongswan-starter zlib1g-dev"
+
+if [ -d ${OVS_DIR} ]; then
+  sudo rm -rf ${OVS_DIR}
+fi
+
+# updating apt
+sudo apt-get update
+# install build time dependency
+sudo apt-get install  ${BUILD_DEPS} -y
+# make surew correct linux headers are installed
+sudo apt-get -y install "linux-headers-$(uname -r)"
+# Install fpm
+sudo gem install fpm
+
+sudo apt-get install ${INSTALLATION_DEPS} -y
+
+sudo rm -rf openvswitch-2.14.1/
+sudo rm -rf /usr/src/openvswitch-datapath.tar.bz2
+sudo rm -rf openvswitch-datapath-module-5.4.0-59-generic_2.14.1-1_amd64.deb
+
+cd $WORK_DIR
+rm *deb
+
+git clone https://github.com/openvswitch/ovs
+cd ovs
+git checkout 42f667e223c005683185a97dd092545d27f29a04
+patch -p1 < ${WORK_DIR}/0001-of-match-expand-NXM_NX_TUN_FLAGS-to-include-all-tunn.patch
+patch -p1 < ${WORK_DIR}/0002-userspace-IPFIX-Add-tunnel-type-GTP.patch
+patch -p1 < ${WORK_DIR}/0003-datapath-add-vport-gtp-for-GPRS-Tunneling-Protocol.patch
+patch -p1 < ${WORK_DIR}/0004-ovs-Add-support-to-set-GTP-header-fields.patch
+patch -p1 < ${WORK_DIR}/0005-OVS-gtp-echo-handling.patch
+patch -p1 < ${WORK_DIR}/0006-ovs-test-add-gtp-marker-test.patch
+patch -p1 < ${WORK_DIR}/0007-datapath-Fixes-for-4.9-kernel.patch
+patch -p1 < ${WORK_DIR}/0008-ovs-datapath-enable-kernel-5.6.patch
+patch -p1 < ${WORK_DIR}/0009-AGW-OVS-handle-gtp-tunnel-type.patch
+patch -p1 < ${WORK_DIR}/0010-native-tnl-routing-tunnel-lookup-with-pkt-mark.patch
+patch -p1 < ${WORK_DIR}/0011N-fixes-for-2.14.patch
+patch -p0 < ${WORK_DIR}/0012-fixes-for-odl-util-2.14.patch
+patch -p1 < ${WORK_DIR}/0015-ovs-gtp-extn-hdr-2.14.patch
+exit
+./boot.sh
+# Building OVS user packages
+opts="--with-linux=/lib/modules/$(uname -r)/build"
+deb_opts="nocheck parallel=$(nproc)"
+fakeroot make -f debian/rules DATAPATH_CONFIGURE_OPTS="$opts" DEB_BUILD_OPTIONS="$deb_opts" binary
+
+WORK_DIR=/home/vagrant/magma/third_party/gtp_ovs/ovs-gtp-patches/2.14
+## Building OVS datapath kernel module package
+cd ${WORK_DIR}/ovs
+sudo mkdir -p /usr/src/linux
+kvers=$(uname -r)
+ksrc="/lib/modules/$kvers/build"
+sudo make -f debian/rules.modules KSRC="$ksrc" KVERS="$kvers" binary-modules
+
+cp /usr/src/*.deb ${WORK_DIR}/*.deb ${OUTPUT_DIR}
+vagrant@magma-dev-focal:~/magma/third_party/gtp_ovs/ovs-gtp-patches$
