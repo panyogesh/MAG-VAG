@@ -2,3 +2,14 @@ Tracing Packet flows
 ==============================================
 ovs-dpctl -s show
 ovs-dpctl dump-flows ovs-system
+
+ovs-vsctl: Error detected while setting up 'gtpu0': could not add network device gtpu0 to ofproto (Address family not supported by protocol).  See ovs-vswitchd log for details.
+===========================================================
+
+Only 2 reasons :
+   1. The tunnel end-point is not in same subnet
+   2. GTP is not integrated in the openvswitch 
+               Interface gtp0
+                type: gtpu
+                options: {key=flow, remote_ip=flow}
+                error: "could not add network device gtp0 to ofproto (Address family not supported by protocol)"
