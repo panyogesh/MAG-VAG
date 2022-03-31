@@ -1,0 +1,50 @@
+Install Vagrantfile
+-----------------------------
+
+NewMach-Apr-1.pcap  agw_install_ubuntu.sh  agw_pre_check_ubuntu.sh  mme  tmp
+vagrant@destro-magma:~$ logout
+Connection to 127.0.0.1 closed.
+yogesh@compute1:~/SW_EXP/FOCAL$ cat Vagrantfile
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/focal64"
+
+  config.vm.define :destromagma, autostart: false do |destromagma|
+    destromagma.vm.hostname = "destro-magma"
+    destromagma.vm.network "private_network", ip: "192.168.60.176", nic_type: "82540EM"
+    destromagma.vm.network "private_network", ip: "192.168.129.74", nic_type: "82540EM"
+
+    destromagma.vm.provider "virtualbox" do |vb|
+      vb.name = "destro-magma"
+      vb.linked_clone = true
+      vb.customize ["modifyvm", :id, "--memory", "6144"]
+      vb.customize ["modifyvm", :id, "--cpus", "4"]
+      vb.customize ["modifyvm", :id, "--nicpromisc2", "allow-all"]
+    end
+  end
+end
+yogesh@compute1:~/SW_EXP/FOCAL$
+
+Pre-Request
+-----------------------------------
+sudo su
+sed -i 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="net.ifnames=0 biosdevname=0"/g' /etc/default/grub
+sed -i 's/enp0s3/eth0/g' /etc/netplan/50-cloud-init.yaml
+# changing interface name
+grub-mkconfig -o /boot/grub/grub.cfg
+
+
+Restrat the Machine
+-----------------------------------
+vagrant reload magma
+
+Install the Packages
+(Reference : https://docs.magmacore.org/docs/lte/deploy_install)
+-----------------------------------
+sudo su
+wget https://raw.githubusercontent.com/magma/magma/master/lte/gateway/deploy/agw_install_ubuntu.sh
+bash agw_install_ubuntu.sh
+
+This will install packages and restart the machine. Few Minutes later mme should come up.
