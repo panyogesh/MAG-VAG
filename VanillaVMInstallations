@@ -283,8 +283,20 @@ vagrant@destro-magma:/etc/ssh$ cat sshd_config | grep Pass
 PasswordAuthentication yes
 sudo service sshd restart
 
+Other Commands
+------------------------
+- Check the version of magma
+    sudo apt list | grep magma
+- Take latest from magma
+    cat /etc/apt/sources.list.d/magma.list
+     -- deb https://artifactory.magmacore.org/artifactory/debian-test focal-ci main
+     -- sudo apt update
+     -- sudo apt install -y magma -o Dpkg::Options::="--force-overwrite"
 
-Issues 
+
+
+Issues
+-----------------------
 1. DNS Failure
 Refer : https://stackoverflow.com/questions/53687051/ping-google-com-temporary-failure-in-name-resolution
 sudo systemctl disable systemd-resolved.service
