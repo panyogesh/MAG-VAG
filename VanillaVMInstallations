@@ -282,3 +282,17 @@ Restart SSH
 vagrant@destro-magma:/etc/ssh$ cat sshd_config | grep Pass
 PasswordAuthentication yes
 sudo service sshd restart
+
+
+Issues 
+1. DNS Failure
+Refer : https://stackoverflow.com/questions/53687051/ping-google-com-temporary-failure-in-name-resolution
+sudo systemctl disable systemd-resolved.service
+sudo systemctl stop systemd-resolved.service
+sudo rm /etc/resolv.conf
+sudo vim /etc/resolv.conf
+nameserver 8.8.8.8
+
+
+
+
