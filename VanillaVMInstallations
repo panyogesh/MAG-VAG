@@ -27,7 +27,12 @@ Vagrant.configure("2") do |config|
 end
 yogesh@compute1:~/SW_EXP/FOCAL$
 
-Pre-Request
+Login to the vagrant box
+---------------------------------
+
+vagrant ssh destromagma
+
+Pre-Request (on  destromagma)
 -----------------------------------
 sudo su
 sed -i 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="net.ifnames=0 biosdevname=0"/g' /etc/default/grub
@@ -36,11 +41,11 @@ sed -i 's/enp0s3/eth0/g' /etc/netplan/50-cloud-init.yaml
 grub-mkconfig -o /boot/grub/grub.cfg
 
 
-Restrat the Machine
+Restrat the Machine (On Host)
 -----------------------------------
 vagrant reload magma
 
-Install the Packages
+Install the Packages  (on  destromagma)
 (Reference : https://docs.magmacore.org/docs/lte/deploy_install)
 -----------------------------------
 sudo su
@@ -50,7 +55,7 @@ bash agw_install_ubuntu.sh
 This will install packages and restart the machine
 
 
-Only if you need 5G 
+Only if you need 5G  (on  destromagma)
 ----------------------------------------
 
 vagrant@destro-magma:/etc/magma$ cat gateway.mconfig | grep enable5
